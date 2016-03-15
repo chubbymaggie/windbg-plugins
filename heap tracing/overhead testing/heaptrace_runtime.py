@@ -1,5 +1,6 @@
 import pykd
 from os.path import expanduser
+import timeit
 
 home = expanduser("~")
 return_reg = "rax"
@@ -16,6 +17,23 @@ def get_address(localAddr):
 	if result_count > 1:
 		print "[-] Warning, more than one result for", localAddr	
 	return res.split()[0]
+	
+class start(pykd.eventHandler):
+	def __init__(self):
+		addr = get_address("jscript9!StrToDbl")
+		if addr == None:
+			return
+		self.start = timeit.default_timer()
+		handle_allocate_heap()
+		handle_free_heap()
+		handle_realloc_heap()
+		self.bp_init = pykd.setBp(int(addr, 16), self.enter_call_back)
+
+	def enter_call_back(self,bp):
+		end = timeit.default_timer()
+		print "Heap spray took: " + str(end - self.start)
+		return True
+		
 	
 #RtlAllocateHeap(
 # IN PVOID                HeapHandle,
@@ -139,8 +157,6 @@ except:
 	arch_bits = 32
 	return_reg = "eax"
 	stack_pointer = "esp"
-	
-handle_allocate_heap()
-handle_free_heap()
-handle_realloc_heap()
+
+start()
 pykd.go()
